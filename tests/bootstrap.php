@@ -17,9 +17,9 @@ if (!defined('DB_TEST_PATH')) {
 }
 
 // Load core components
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/database.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../public/includes/config.php';
+require_once __DIR__ . '/../public/includes/database.php';
+require_once __DIR__ . '/../public/includes/auth.php';
 
 /**
  * Test utilities

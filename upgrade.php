@@ -14,9 +14,9 @@ define('DMS_INITIALIZED', true);
 define('DMS_TESTING', false);
 
 // Load core components
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/database.php';
-require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/public/includes/config.php';
+require_once __DIR__ . '/public/includes/database.php';
+require_once __DIR__ . '/public/includes/auth.php';
 
 /**
  * Upgrade DMS database schema
