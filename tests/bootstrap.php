@@ -21,6 +21,24 @@ require_once __DIR__ . '/../public/includes/config.php';
 require_once __DIR__ . '/../public/includes/database.php';
 require_once __DIR__ . '/../public/includes/auth.php';
 
+// Load service classes
+require_once __DIR__ . '/../public/includes/services/DealerManagementService.php';
+require_once __DIR__ . '/../public/includes/services/VehicleService.php';
+require_once __DIR__ . '/../public/includes/services/SaleService.php';
+require_once __DIR__ . '/../public/includes/services/ReportsService.php';
+require_once __DIR__ . '/../public/includes/services/ComplianceService.php';
+require_once __DIR__ . '/../public/includes/services/AuditService.php';
+
+// Load test data factory
+require_once __DIR__ . '/factories/TestDataFactory.php';
+
+// Initialize database for testing
+$db = Database::getInstance();
+$db->initializeSchema();
+
+// Clean up any existing test data
+TestDataFactory::cleanupTestData();
+
 /**
  * Test utilities
  */

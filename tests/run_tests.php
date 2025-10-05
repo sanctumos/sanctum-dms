@@ -1,306 +1,250 @@
 <?php
 /**
- * DMS Test Runner
- * Custom test runner for comprehensive testing
+ * Comprehensive Test Runner
+ * Runs all test suites: Unit, Integration, and E2E tests
  */
 
 require_once __DIR__ . '/bootstrap.php';
 
 class TestRunner {
     private $results = [];
+    private $serverProcess = null;
     private $startTime;
-    private $totalTests = 0;
-    private $passedTests = 0;
-    private $failedTests = 0;
-    private $apiServerProcess = null;
     
     public function __construct() {
         $this->startTime = microtime(true);
     }
     
-    /**
-     * Run all tests
-     */
     public function runAllTests() {
-        echo "Running Sanctum DMS Test Suite...\n\n";
+        echo "Starting Sanctum DMS Test Suite\n";
+        echo "==============================\n\n";
         
-        $this->runUnitTests();
-        $this->runApiTests();
-        $this->runIntegrationTests();
-        $this->runE2ETests();
+        try {
+            // Start test server for API and E2E tests
+            $this->startTestServer();
+            
+            // Run test suites
+            $this->runUnitTests();
+            $this->runIntegrationTests();
+            $this->runE2ETests();
+            
+        } finally {
+            // Always stop server
+            $this->stopTestServer();
+        }
         
-        $this->generateReport();
+        $this->printSummary();
+        return $this->getExitCode();
     }
     
-    /**
-     * Run unit tests
-     */
+    private function startTestServer() {
+        echo "Starting test server...\n";
+        
+        $command = 'php -S localhost:8080 -t ' . __DIR__ . '/../public ' . __DIR__ . '/../public/router.php';
+        $this->serverProcess = proc_open($command, [], $pipes);
+        
+        if (!is_resource($this->serverProcess)) {
+            throw new Exception("Failed to start test server");
+        }
+        
+        // Wait for server to be ready
+        $maxAttempts = 10;
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $response = TestUtils::makeApiRequest('GET', '/api/v1/status');
+            if ($response['code'] === 200) {
+                echo "Test server ready\n\n";
+                return;
+            }
+            sleep(1);
+        }
+        
+        throw new Exception("Test server failed to start");
+    }
+    
+    private function stopTestServer() {
+        if (is_resource($this->serverProcess)) {
+            proc_terminate($this->serverProcess);
+            proc_close($this->serverProcess);
+            echo "Test server stopped\n";
+        }
+    }
+    
     private function runUnitTests() {
-        echo "Running Unit Tests...\n";
+        echo "Running Unit Tests\n";
+        echo "=================\n";
         
-        $testFiles = glob(__DIR__ . '/unit/*Test.php');
-        
-        foreach ($testFiles as $testFile) {
-            $this->runTestFile($testFile, 'Unit');
-        }
-    }
-    
-    /**
-     * Run API tests
-     */
-    private function runApiTests() {
-        echo "Running API Tests...\n";
-        $this->startApiServer();
-        
-        $testFiles = glob(__DIR__ . '/api/*Test.php');
-        
-        try {
-            foreach ($testFiles as $testFile) {
-                $this->runTestFile($testFile, 'API');
-            }
-        } finally {
-            $this->stopApiServer();
-        }
-    }
-    
-    /**
-     * Run integration tests
-     */
-    private function runIntegrationTests() {
-        echo "Running Integration Tests...\n";
-        
-        $testFiles = glob(__DIR__ . '/integration/*Test.php');
-        
-        foreach ($testFiles as $testFile) {
-            $this->runTestFile($testFile, 'Integration');
-        }
-    }
-    
-    /**
-     * Run end-to-end tests
-     */
-    private function runE2ETests() {
-        echo "Running E2E Tests...\n";
-        $this->startApiServer();
-        $testFiles = glob(__DIR__ . '/e2e/*Test.php');
-        
-        try {
-            foreach ($testFiles as $testFile) {
-                $this->runTestFile($testFile, 'E2E');
-            }
-        } finally {
-            $this->stopApiServer();
-        }
-    }
-
-    private function startApiServer() {
-        if ($this->apiServerProcess) {
-            return;
-        }
-        $projectRoot = dirname(__DIR__);
-        $docRoot = $projectRoot . '/public';
-        $router = $docRoot . '/router.php';
-        $cmd = PHP_BINARY . ' -S localhost:8080 ' . escapeshellarg($router);
-        $descriptorspec = [
-            0 => ['pipe', 'r'],
-            1 => ['file', __DIR__ . '/server_stdout.log', 'w'],
-            2 => ['file', __DIR__ . '/server_stderr.log', 'w']
+        $testFiles = [
+            'DatabaseTest.php',
+            'AuthTest.php', 
+            'ServiceTest.php',
+            'EdgeCaseTest.php',
+            'SecurityTest.php',
+            'PerformanceTest.php'
         ];
-        $this->apiServerProcess = proc_open($cmd, $descriptorspec, $pipes, $projectRoot);
-        // Give server a moment to start
-        usleep(300000);
-    }
-
-    private function stopApiServer() {
-        if ($this->apiServerProcess && is_resource($this->apiServerProcess)) {
-            proc_terminate($this->apiServerProcess);
-            proc_close($this->apiServerProcess);
-            $this->apiServerProcess = null;
-        }
+        
+        $this->runTestSuite('unit', $testFiles);
     }
     
-    /**
-     * Run individual test file
-     */
-    private function runTestFile($testFile, $category) {
-        $className = basename($testFile, '.php');
+    private function runIntegrationTests() {
+        echo "\nRunning Integration Tests\n";
+        echo "========================\n";
         
-        if (!class_exists($className)) {
-            require_once $testFile;
-        }
+        $testFiles = [
+            'ApiIntegrationTest.php',
+            'ServiceIntegrationTest.php',
+            'CompleteApiTest.php'
+        ];
         
-        $testInstance = new $className();
-        
-        // Get all test methods
-        $reflection = new ReflectionClass($testInstance);
-        $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
-        
-        foreach ($methods as $method) {
-            $methodName = $method->getName();
-            
-            if (strpos($methodName, 'test') === 0) {
-                $this->runTestMethod($testInstance, $methodName, $className, $category);
-            }
-        }
+        $this->runTestSuite('integration', $testFiles);
     }
     
-    /**
-     * Run individual test method
-     */
-    private function runTestMethod($testInstance, $methodName, $className, $category) {
-        $this->totalTests++;
-        $testName = "$className::$methodName";
+    private function runE2ETests() {
+        echo "\nRunning End-to-End Tests\n";
+        echo "========================\n";
         
-        try {
-            // Set up test
-            if (method_exists($testInstance, 'setUp')) {
-                $testInstance->setUp();
-            }
-            
-            // Run test
-            $testInstance->$methodName();
-            
-            // Tear down test
-            if (method_exists($testInstance, 'tearDown')) {
-                $testInstance->tearDown();
-            }
-            
-            $this->passedTests++;
-            $this->results[] = [
-                'name' => $testName,
-                'category' => $category,
-                'status' => 'PASSED',
-                'message' => ''
-            ];
-            
-            echo "  ✓ $testName\n";
-            
-        } catch (Exception $e) {
-            $this->failedTests++;
-            $this->results[] = [
-                'name' => $testName,
-                'category' => $category,
-                'status' => 'FAILED',
-                'message' => $e->getMessage()
-            ];
-            
-            echo "  ✗ $testName - " . $e->getMessage() . "\n";
-            
-            // Tear down on failure
-            if (method_exists($testInstance, 'tearDown')) {
-                try {
-                    $testInstance->tearDown();
-                } catch (Exception $te) {
-                    // Ignore tear down errors
-                }
-            }
-        }
+        $testFiles = [
+            'E2ETest.php',
+            'CompleteE2ETest.php'
+        ];
+        
+        $this->runTestSuite('e2e', $testFiles);
     }
     
-    /**
-     * Generate test report
-     */
-    private function generateReport() {
-        $endTime = microtime(true);
-        $duration = round($endTime - $this->startTime, 2);
+    private function runTestSuite($suite, $testFiles) {
+        $suiteResults = [
+            'suite' => $suite,
+            'total' => 0,
+            'passed' => 0,
+            'failed' => 0,
+            'tests' => []
+        ];
         
-        echo "\n" . str_repeat('=', 60) . "\n";
-        echo "TEST REPORT\n";
-        echo str_repeat('=', 60) . "\n";
-        
-        echo "Total Tests: $this->totalTests\n";
-        echo "Passed: $this->passedTests\n";
-        echo "Failed: $this->failedTests\n";
-        echo "Duration: {$duration}s\n";
-        
-        $successRate = $this->totalTests > 0 ? round(($this->passedTests / $this->totalTests) * 100, 1) : 0;
-        echo "Success Rate: {$successRate}%\n\n";
-        
-        // Show failed tests
-        if ($this->failedTests > 0) {
-            echo "FAILED TESTS:\n";
-            echo str_repeat('-', 40) . "\n";
+        foreach ($testFiles as $testFile) {
+            $testPath = __DIR__ . '/' . $suite . '/' . $testFile;
             
-            foreach ($this->results as $result) {
-                if ($result['status'] === 'FAILED') {
-                    echo "✗ {$result['name']}\n";
-                    echo "  Category: {$result['category']}\n";
-                    echo "  Error: {$result['message']}\n\n";
+            if (!file_exists($testPath)) {
+                echo "Warning: Test file not found: $testPath\n";
+                continue;
+            }
+            
+            echo "Running $testFile...\n";
+            
+            // Load and run test class
+            require_once $testPath;
+            
+            $className = str_replace('.php', '', $testFile);
+            if (!class_exists($className)) {
+                echo "Error: Test class $className not found\n";
+                continue;
+            }
+            
+            $testClass = new ReflectionClass($className);
+            $testMethods = $testClass->getMethods(ReflectionMethod::IS_PUBLIC);
+            
+            foreach ($testMethods as $method) {
+                if (strpos($method->getName(), 'test') === 0) {
+                    $suiteResults['total']++;
+                    
+                    try {
+                        $testInstance = $testClass->newInstance();
+                        
+                        // Run setUp if exists
+                        if ($testClass->hasMethod('setUp')) {
+                            $testInstance->setUp();
+                        }
+                        
+                        // Run test method
+                        $method->invoke($testInstance);
+                        
+                        // Run tearDown if exists
+                        if ($testClass->hasMethod('tearDown')) {
+                            $testInstance->tearDown();
+                        }
+                        
+                        $suiteResults['passed']++;
+                        $suiteResults['tests'][] = [
+                            'name' => $method->getName(),
+                            'status' => 'PASS',
+                            'message' => ''
+                        ];
+                        
+                        echo "  ✓ " . $method->getName() . "\n";
+                        
+                    } catch (Exception $e) {
+                        $suiteResults['failed']++;
+                        $suiteResults['tests'][] = [
+                            'name' => $method->getName(),
+                            'status' => 'FAIL',
+                            'message' => $e->getMessage()
+                        ];
+                        
+                        echo "  ✗ " . $method->getName() . " - " . $e->getMessage() . "\n";
+                    }
                 }
             }
         }
         
-        // Generate HTML report
-        $this->generateHtmlReport($duration);
+        $this->results[] = $suiteResults;
         
-        // Exit with appropriate code
-        exit($this->failedTests > 0 ? 1 : 0);
+        // Print suite summary
+        echo "\n$suite Results: {$suiteResults['passed']}/{$suiteResults['total']} passed\n";
+        if ($suiteResults['failed'] > 0) {
+            echo "Failed tests: {$suiteResults['failed']}\n";
+        }
     }
     
-    /**
-     * Generate HTML test report
-     */
-    private function generateHtmlReport($duration) {
-        $html = '<!DOCTYPE html>
-<html>
-<head>
-    <title>DMS Test Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; }
-        .passed { color: green; }
-        .failed { color: red; }
-        .summary { margin: 20px 0; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Sanctum DMS Test Report</h1>
-        <p>Generated: ' . date('Y-m-d H:i:s') . '</p>
-    </div>
-    
-    <div class="summary">
-        <h2>Summary</h2>
-        <p>Total Tests: ' . $this->totalTests . '</p>
-        <p class="passed">Passed: ' . $this->passedTests . '</p>
-        <p class="failed">Failed: ' . $this->failedTests . '</p>
-        <p>Duration: ' . $duration . 's</p>
-        <p>Success Rate: ' . round(($this->passedTests / $this->totalTests) * 100, 1) . '%</p>
-    </div>
-    
-    <h2>Test Results</h2>
-    <table>
-        <tr>
-            <th>Test Name</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Message</th>
-        </tr>';
+    private function printSummary() {
+        $totalTests = 0;
+        $totalPassed = 0;
+        $totalFailed = 0;
         
-        foreach ($this->results as $result) {
-            $statusClass = $result['status'] === 'PASSED' ? 'passed' : 'failed';
-            $html .= '<tr>
-                <td>' . htmlspecialchars($result['name']) . '</td>
-                <td>' . htmlspecialchars($result['category']) . '</td>
-                <td class="' . $statusClass . '">' . htmlspecialchars($result['status']) . '</td>
-                <td>' . htmlspecialchars($result['message']) . '</td>
-            </tr>';
+        foreach ($this->results as $suite) {
+            $totalTests += $suite['total'];
+            $totalPassed += $suite['passed'];
+            $totalFailed += $suite['failed'];
         }
         
-        $html .= '</table>
-</body>
-</html>';
+        $duration = microtime(true) - $this->startTime;
         
-        file_put_contents(__DIR__ . '/test_report.html', $html);
-        echo "HTML report generated: tests/test_report.html\n";
+        echo "\n";
+        echo "Test Summary\n";
+        echo "============\n";
+        echo "Total Tests: $totalTests\n";
+        echo "Passed: $totalPassed\n";
+        echo "Failed: $totalFailed\n";
+        echo "Duration: " . round($duration, 2) . " seconds\n";
+        
+        if ($totalFailed > 0) {
+            echo "\nFailed Tests:\n";
+            foreach ($this->results as $suite) {
+                foreach ($suite['tests'] as $test) {
+                    if ($test['status'] === 'FAIL') {
+                        echo "  {$suite['suite']}/{$test['name']}: {$test['message']}\n";
+                    }
+                }
+            }
+        }
+        
+        echo "\n";
+        if ($totalFailed === 0) {
+            echo "🎉 All tests passed!\n";
+        } else {
+            echo "❌ Some tests failed.\n";
+        }
+    }
+    
+    private function getExitCode() {
+        foreach ($this->results as $suite) {
+            if ($suite['failed'] > 0) {
+                return 1;
+            }
+        }
+        return 0;
     }
 }
 
 // Run tests if called directly
-if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($_SERVER['SCRIPT_NAME'])) {
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_NAME'])) {
     $runner = new TestRunner();
-    $runner->runAllTests();
+    exit($runner->runAllTests());
 }
