@@ -265,6 +265,11 @@ abstract class BaseTest {
         $this->expectedException = $exceptionClass;
     }
     
+    protected function expectExceptionMessage($message) {
+        // This is a placeholder - we'll handle exception messages in the test runner
+        $this->expectedExceptionMessage = $message;
+    }
+    
     protected function assertIsInt($value, $message = '') {
         if (!is_int($value)) {
             $type = gettype($value);
@@ -288,6 +293,13 @@ abstract class BaseTest {
         if (!is_array($value)) {
             $type = gettype($value);
             throw new Exception("Assertion failed: Expected array, got '$type'. $message");
+        }
+    }
+    
+    protected function assertIsString($value, $message = '') {
+        if (!is_string($value)) {
+            $type = gettype($value);
+            throw new Exception("Assertion failed: Expected string, got '$type'. $message");
         }
     }
 }

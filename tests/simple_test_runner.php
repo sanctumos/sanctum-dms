@@ -70,8 +70,25 @@ foreach ($testFiles as $testFile) {
                     echo "✓ ({$duration}s)\n";
                     
                 } catch (Exception $e) {
-                    $failedTests++;
-                    echo "✗ {$e->getMessage()}\n";
+                    // Check if this exception was expected
+                    if (isset($testInstance->expectedException) && $e instanceof $testInstance->expectedException) {
+                        // Check if the exception message matches expected
+                        if (isset($testInstance->expectedExceptionMessage)) {
+                            if (strpos($e->getMessage(), $testInstance->expectedExceptionMessage) !== false) {
+                                $passedTests++;
+                                echo "✓ (expected exception)\n";
+                            } else {
+                                $failedTests++;
+                                echo "✗ Expected message '{$testInstance->expectedExceptionMessage}', got '{$e->getMessage()}'\n";
+                            }
+                        } else {
+                            $passedTests++;
+                            echo "✓ (expected exception)\n";
+                        }
+                    } else {
+                        $failedTests++;
+                        echo "✗ {$e->getMessage()}\n";
+                    }
                 }
             }
         }

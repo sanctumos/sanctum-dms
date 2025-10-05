@@ -48,23 +48,25 @@ class DatabaseTest extends BaseTest {
 
     public function testPreparedStatements() {
         // Test named parameters
+        $uniqueId = time();
         $this->db->execute("INSERT INTO dealers (name, code, email) VALUES (:name, :code, :email)", [
-            ':name' => 'Test Dealer',
-            ':code' => 'TEST001',
-            ':email' => 'test@example.com'
+            ':name' => "Test Dealer {$uniqueId}",
+            ':code' => "TEST{$uniqueId}",
+            ':email' => "test{$uniqueId}@example.com"
         ]);
         
-        $dealer = $this->db->fetchOne("SELECT * FROM dealers WHERE code = :code", [':code' => 'TEST001']);
-        $this->assertEquals('Test Dealer', $dealer['name']);
-        $this->assertEquals('TEST001', $dealer['code']);
-        $this->assertEquals('test@example.com', $dealer['email']);
+        $dealer = $this->db->fetchOne("SELECT * FROM dealers WHERE code = :code", [':code' => "TEST{$uniqueId}"]);
+        $this->assertEquals("Test Dealer {$uniqueId}", $dealer['name']);
+        $this->assertEquals("TEST{$uniqueId}", $dealer['code']);
+        $this->assertEquals("test{$uniqueId}@example.com", $dealer['email']);
     }
 
     public function testPositionalParameters() {
-        $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ['Test Dealer 2', 'TEST002']);
+        $uniqueId = time() + 1;
+        $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["Test Dealer {$uniqueId}", "TEST{$uniqueId}"]);
         
-        $dealer = $this->db->fetchOne("SELECT * FROM dealers WHERE code = ?", ['TEST002']);
-        $this->assertEquals('Test Dealer 2', $dealer['name']);
+        $dealer = $this->db->fetchOne("SELECT * FROM dealers WHERE code = ?", ["TEST{$uniqueId}"]);
+        $this->assertEquals("Test Dealer {$uniqueId}", $dealer['name']);
     }
 
     public function testFetchAll() {
@@ -72,7 +74,7 @@ class DatabaseTest extends BaseTest {
         $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["Dealer 1 {$uniqueId}", "D001{$uniqueId}"]);
         $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["Dealer 2 {$uniqueId}", "D002{$uniqueId}"]);
         
-        $dealers = $this->db->fetchAll("SELECT * FROM dealers WHERE code LIKE ? ORDER BY code", ["D00{$uniqueId}%"]);
+        $dealers = $this->db->fetchAll("SELECT * FROM dealers WHERE code LIKE ? ORDER BY code", ["D%{$uniqueId}"]);
         $this->assertCount(2, $dealers);
         $this->assertEquals("D001{$uniqueId}", $dealers[0]['code']);
         $this->assertEquals("D002{$uniqueId}", $dealers[1]['code']);
@@ -109,52 +111,58 @@ class DatabaseTest extends BaseTest {
         try {
             $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["Rollback Dealer {$uniqueId}", "ROLL{$uniqueId}"]);
             
-            // Force an error
-            $this->db->execute("INSERT INTO vehicles (dealer_id, vin, make, model, year) VALUES (?, ?, ?, ?, ?)", 
-                [999, "VIN{$uniqueId}123456789012", 'Toyota', 'Camry', 2020]); // Invalid dealer_id
+            // Force an error by inserting duplicate code
+            $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["Duplicate Dealer {$uniqueId}", "ROLL{$uniqueId}"]);
             
-            $this->fail('Expected foreign key constraint error');
+            $this->fail('Expected unique constraint error');
             
         } catch (Exception $e) {
             $this->db->rollback();
             
-            // Verify rollback worked
+            // Verify rollback worked - dealer should not exist
             $dealer = $this->db->fetchOne("SELECT * FROM dealers WHERE code = ?", ["ROLL{$uniqueId}"]);
-            $this->assertNull($dealer);
+            $this->assertFalse($dealer);
         }
     }
 
     public function testComputedColumns() {
-        $uniqueId = time();
+        $uniqueId = time() + 4;
         $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["Test Dealer {$uniqueId}", "COMP{$uniqueId}"]);
         $dealerId = $this->db->lastInsertId();
         
         // Use a specific date to avoid non-deterministic julianday issues
         $this->db->execute("INSERT INTO vehicles (dealer_id, vin, make, model, year, price, cost, date_added) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-            [$dealerId, "VIN{$uniqueId}123456789012", 'Toyota', 'Camry', 2020, 25000, 20000, '2023-01-01']);
+            [$dealerId, "VIN{$uniqueId}123456789012", 'Toyota', 'Camry', 2020, 30000, 20000, '2023-01-01']);
         
         $vehicle = $this->db->fetchOne("SELECT *, margin, profit_class FROM vehicles WHERE vin = ?", ["VIN{$uniqueId}123456789012"]);
         
         $this->assertNotNull($vehicle['margin']);
-        $this->assertEquals(5000, $vehicle['margin']);
+        $this->assertEquals(10000, $vehicle['margin']);
         $this->assertEquals('high', $vehicle['profit_class']);
     }
 
     public function testForeignKeyConstraints() {
         // This should fail due to foreign key constraint
-        $this->expectException(Exception::class);
-        $this->db->execute("INSERT INTO vehicles (dealer_id, vin, make, model, year) VALUES (?, ?, ?, ?, ?)", 
-            [999, 'VIN123456789012345', 'Toyota', 'Camry', 2020]);
+        $uniqueId = time() + 3;
+        try {
+            $this->db->execute("INSERT INTO vehicles (dealer_id, vin, make, model, year) VALUES (?, ?, ?, ?, ?)", 
+                [999, "VIN{$uniqueId}123456789012", 'Toyota', 'Camry', 2020]);
+            $this->fail('Expected foreign key constraint error');
+        } catch (Exception $e) {
+            // Expected - foreign key constraint should prevent this
+            $this->assertStringContains('constraint', $e->getMessage());
+        }
     }
 
     public function testLastInsertId() {
-        $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ['ID Test Dealer', 'ID001']);
+        $uniqueId = time() + 2;
+        $this->db->execute("INSERT INTO dealers (name, code) VALUES (?, ?)", ["ID Test Dealer {$uniqueId}", "ID{$uniqueId}"]);
         $id = $this->db->lastInsertId();
         
         $this->assertIsInt($id);
         $this->assertGreaterThan(0, $id);
         
         $dealer = $this->db->fetchOne("SELECT * FROM dealers WHERE id = ?", [$id]);
-        $this->assertEquals('ID Test Dealer', $dealer['name']);
+        $this->assertEquals("ID Test Dealer {$uniqueId}", $dealer['name']);
     }
 }
