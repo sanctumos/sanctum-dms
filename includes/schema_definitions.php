@@ -88,7 +88,6 @@ $DMS_SCHEMA_DEFINITIONS = [
             'condition' => 'VARCHAR(20) DEFAULT "good"',
             'notes' => 'TEXT',
             'date_added' => 'DATETIME DEFAULT CURRENT_TIMESTAMP',
-            'days_in_inventory' => 'INTEGER GENERATED ALWAYS AS (CAST(julianday("now") - julianday(date_added) AS INTEGER)) STORED',
             'margin' => 'DECIMAL(10,2) GENERATED ALWAYS AS (price - COALESCE(cost, 0)) STORED',
             'profit_class' => 'VARCHAR(20) GENERATED ALWAYS AS (CASE WHEN (price - COALESCE(cost, 0)) > 5000 THEN "high" WHEN (price - COALESCE(cost, 0)) > 2000 THEN "medium" ELSE "low" END) STORED',
             'created_at' => 'DATETIME DEFAULT CURRENT_TIMESTAMP',
@@ -99,7 +98,6 @@ $DMS_SCHEMA_DEFINITIONS = [
             'CREATE INDEX IF NOT EXISTS idx_vehicles_dealer_id ON vehicles(dealer_id)',
             'CREATE INDEX IF NOT EXISTS idx_vehicles_status ON vehicles(status)',
             'CREATE INDEX IF NOT EXISTS idx_vehicles_make_model ON vehicles(make, model)',
-            'CREATE INDEX IF NOT EXISTS idx_vehicles_days_inventory ON vehicles(days_in_inventory)',
             'CREATE INDEX IF NOT EXISTS idx_vehicles_profit_class ON vehicles(profit_class)'
         ],
         'foreign_keys' => [

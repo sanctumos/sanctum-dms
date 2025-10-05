@@ -6,14 +6,14 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class PerformanceTest extends PHPUnit\Framework\TestCase {
+class PerformanceTest extends BaseTest {
     private $db;
     private $dealerService;
     private $vehicleService;
     private $saleService;
     private $startTime;
 
-    protected function setUp(): void {
+    public function setUp(): void {
         $this->db = Database::getInstance();
         $this->dealerService = new DealerManagementService();
         $this->vehicleService = new VehicleService();
@@ -23,7 +23,7 @@ class PerformanceTest extends PHPUnit\Framework\TestCase {
         $this->cleanupTestData();
     }
 
-    protected function tearDown(): void {
+    public function tearDown(): void {
         $this->cleanupTestData();
     }
 

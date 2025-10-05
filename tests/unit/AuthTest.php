@@ -6,11 +6,11 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class AuthTest extends PHPUnit\Framework\TestCase {
-    private $auth;
-    private $db;
+class AuthTest extends BaseTest {
+    protected $auth;
+    protected $db;
 
-    protected function setUp(): void {
+    public function setUp(): void {
         $this->db = Database::getInstance();
         $this->auth = new Auth();
         
@@ -18,7 +18,7 @@ class AuthTest extends PHPUnit\Framework\TestCase {
         $this->db->execute("DELETE FROM users WHERE username LIKE 'test_%'");
     }
 
-    protected function tearDown(): void {
+    public function tearDown(): void {
         $this->db->execute("DELETE FROM users WHERE username LIKE 'test_%'");
     }
 
@@ -32,12 +32,12 @@ class AuthTest extends PHPUnit\Framework\TestCase {
     }
 
     public function testApiKeyGeneration() {
-        $key1 = $this->auth->generateApiKey();
-        $key2 = $this->auth->generateApiKey();
+        $key1 = $this->auth->generateRandomApiKey();
+        $key2 = $this->auth->generateRandomApiKey();
         
         $this->assertNotEquals($key1, $key2);
-        $this->assertEquals(64, strlen($key1));
-        $this->assertEquals(64, strlen($key2));
+        $this->assertEquals(32, strlen($key1));
+        $this->assertEquals(32, strlen($key2));
         $this->assertMatchesRegularExpression('/^[a-f0-9]+$/', $key1);
     }
 
@@ -49,12 +49,14 @@ class AuthTest extends PHPUnit\Framework\TestCase {
             'role' => 'user'
         ];
         
-        $userId = $this->auth->createUser($userData);
+        $result = $this->auth->createUser($userData['username'], $userData['email'], $userData['password'], $userData['role']);
         
-        $this->assertIsInt($userId);
-        $this->assertGreaterThan(0, $userId);
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('id', $result);
+        $this->assertIsInt($result['id']);
+        $this->assertGreaterThan(0, $result['id']);
         
-        $user = $this->db->fetchOne("SELECT * FROM users WHERE id = ?", [$userId]);
+        $user = $this->db->fetchOne("SELECT * FROM users WHERE id = ?", [$result['id']]);
         $this->assertEquals('test_user', $user['username']);
         $this->assertEquals('test@example.com', $user['email']);
         $this->assertEquals('user', $user['role']);
@@ -69,15 +71,15 @@ class AuthTest extends PHPUnit\Framework\TestCase {
             'role' => 'admin'
         ];
         
-        $userId = $this->auth->createUser($userData);
-        $user = $this->db->fetchOne("SELECT * FROM users WHERE id = ?", [$userId]);
+        $result = $this->auth->createUser($userData['username'], $userData['email'], $userData['password'], $userData['role']);
+        $user = $this->db->fetchOne("SELECT * FROM users WHERE id = ?", [$result['id']]);
         
         // Test API key authentication
         $_SERVER['HTTP_X_API_KEY'] = $user['api_key'];
         $authenticatedUser = $this->auth->authenticateApiKey();
         
         $this->assertNotNull($authenticatedUser);
-        $this->assertEquals($userId, $authenticatedUser['id']);
+        $this->assertEquals($result['id'], $authenticatedUser['id']);
         $this->assertEquals('test_auth_user', $authenticatedUser['username']);
     }
 
@@ -96,8 +98,8 @@ class AuthTest extends PHPUnit\Framework\TestCase {
             'role' => 'user'
         ];
         
-        $userId = $this->auth->createUser($userData);
-        $user = $this->db->fetchOne("SELECT * FROM users WHERE id = ?", [$userId]);
+        $result = $this->auth->createUser($userData['username'], $userData['email'], $userData['password'], $userData['role']);
+        $user = $this->db->fetchOne("SELECT * FROM users WHERE id = ?", [$result['id']]);
         
         $_SERVER['HTTP_X_API_KEY'] = $user['api_key'];
         $authenticatedUser = $this->auth->authenticateApiKey();

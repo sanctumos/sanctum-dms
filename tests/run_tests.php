@@ -128,6 +128,7 @@ class TestRunner {
             }
             
             echo "Running $testFile...\n";
+            $startTime = microtime(true);
             
             // Load and run test class
             require_once $testPath;
@@ -146,6 +147,7 @@ class TestRunner {
                     $suiteResults['total']++;
                     
                     try {
+                        echo "    Running {$method->getName()}...\n";
                         $testInstance = $testClass->newInstance();
                         
                         // Run setUp if exists
@@ -153,8 +155,10 @@ class TestRunner {
                             $testInstance->setUp();
                         }
                         
-                        // Run test method
+                        // Run test method with timeout
+                        $startTime = microtime(true);
                         $method->invoke($testInstance);
+                        $testDuration = round(microtime(true) - $startTime, 2);
                         
                         // Run tearDown if exists
                         if ($testClass->hasMethod('tearDown')) {
@@ -167,8 +171,7 @@ class TestRunner {
                             'status' => 'PASS',
                             'message' => ''
                         ];
-                        
-                        echo "  ✓ " . $method->getName() . "\n";
+                        echo "  ✓ {$method->getName()} ({$testDuration}s)\n";
                         
                     } catch (Exception $e) {
                         $suiteResults['failed']++;
@@ -177,11 +180,13 @@ class TestRunner {
                             'status' => 'FAIL',
                             'message' => $e->getMessage()
                         ];
-                        
-                        echo "  ✗ " . $method->getName() . " - " . $e->getMessage() . "\n";
+                        echo "  ✗ {$method->getName()}: {$e->getMessage()}\n";
                     }
                 }
             }
+            
+            $duration = round(microtime(true) - $startTime, 2);
+            echo "✓ {$testFile} completed in {$duration}s\n\n";
         }
         
         $this->results[] = $suiteResults;

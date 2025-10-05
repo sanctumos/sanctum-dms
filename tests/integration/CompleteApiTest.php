@@ -6,16 +6,16 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class CompleteApiTest extends PHPUnit\Framework\TestCase {
+class CompleteApiTest extends BaseTest {
     private $baseUrl = 'http://localhost:8080/api/v1';
     private $apiKey = 'dev-key-123';
     private $testData = [];
 
-    protected function setUp(): void {
+    public function setUp(): void {
         $this->cleanupTestData();
     }
 
-    protected function tearDown(): void {
+    public function tearDown(): void {
         $this->cleanupTestData();
     }
 

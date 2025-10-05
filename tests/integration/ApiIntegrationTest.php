@@ -6,19 +6,19 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class ApiIntegrationTest extends PHPUnit\Framework\TestCase {
+class ApiIntegrationTest extends BaseTest {
     private $baseUrl = 'http://localhost:8080/api/v1';
     private $apiKey = 'dev-key-123';
     private $testDealerId;
     private $testVehicleId;
     private $testSaleId;
 
-    protected function setUp(): void {
+    public function setUp(): void {
         // Clean up any existing test data
         $this->cleanupTestData();
     }
 
-    protected function tearDown(): void {
+    public function tearDown(): void {
         $this->cleanupTestData();
     }
 

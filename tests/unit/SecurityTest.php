@@ -6,13 +6,13 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class SecurityTest extends PHPUnit\Framework\TestCase {
+class SecurityTest extends BaseTest {
     private $auth;
     private $db;
     private $testUserId;
     private $testApiKey;
 
-    protected function setUp(): void {
+    public function setUp(): void {
         $this->auth = new Auth();
         $this->db = Database::getInstance();
         
@@ -24,7 +24,7 @@ class SecurityTest extends PHPUnit\Framework\TestCase {
         $this->cleanupTestData();
     }
 
-    protected function tearDown(): void {
+    public function tearDown(): void {
         $this->cleanupTestData();
     }
 

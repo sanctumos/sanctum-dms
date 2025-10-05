@@ -6,14 +6,14 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class ServiceTest extends PHPUnit\Framework\TestCase {
+class ServiceTest extends BaseTest {
     private $db;
     private $dealerService;
     private $vehicleService;
     private $saleService;
     private $reportsService;
 
-    protected function setUp(): void {
+    public function setUp(): void {
         $this->db = Database::getInstance();
         $this->dealerService = new DealerManagementService();
         $this->vehicleService = new VehicleService();
@@ -24,7 +24,7 @@ class ServiceTest extends PHPUnit\Framework\TestCase {
         $this->cleanupTestData();
     }
 
-    protected function tearDown(): void {
+    public function tearDown(): void {
         $this->cleanupTestData();
     }
 

@@ -205,4 +205,89 @@ abstract class BaseTest {
             throw new Exception("Assertion failed: Array does not have key '$key'. $message");
         }
     }
+    
+    protected function assertInstanceOf($expected, $actual, $message = '') {
+        if (!($actual instanceof $expected)) {
+            $actualType = is_object($actual) ? get_class($actual) : gettype($actual);
+            throw new Exception("Assertion failed: Expected instance of '$expected', got '$actualType'. $message");
+        }
+    }
+    
+    protected function assertContains($needle, $haystack, $message = '') {
+        if (!in_array($needle, $haystack)) {
+            throw new Exception("Assertion failed: Array does not contain '$needle'. $message");
+        }
+    }
+    
+    protected function assertNotContains($needle, $haystack, $message = '') {
+        if (in_array($needle, $haystack)) {
+            throw new Exception("Assertion failed: Array contains '$needle'. $message");
+        }
+    }
+    
+    protected function assertGreaterThan($expected, $actual, $message = '') {
+        if ($actual <= $expected) {
+            throw new Exception("Assertion failed: Expected value greater than '$expected', got '$actual'. $message");
+        }
+    }
+    
+    protected function assertLessThan($expected, $actual, $message = '') {
+        if ($actual >= $expected) {
+            throw new Exception("Assertion failed: Expected value less than '$expected', got '$actual'. $message");
+        }
+    }
+    
+    protected function assertStringContains($needle, $haystack, $message = '') {
+        if (strpos($haystack, $needle) === false) {
+            throw new Exception("Assertion failed: String does not contain '$needle'. $message");
+        }
+    }
+    
+    protected function assertCount($expectedCount, $array, $message = '') {
+        $actualCount = count($array);
+        if ($actualCount !== $expectedCount) {
+            throw new Exception("Assertion failed: Expected count '$expectedCount', got '$actualCount'. $message");
+        }
+    }
+    
+    protected function assertNull($value, $message = '') {
+        if ($value !== null) {
+            throw new Exception("Assertion failed: Expected null, got '$value'. $message");
+        }
+    }
+    
+    protected function fail($message = '') {
+        throw new Exception("Test failed: $message");
+    }
+    
+    protected function expectException($exceptionClass) {
+        // This is a placeholder - we'll handle exceptions in the test runner
+        $this->expectedException = $exceptionClass;
+    }
+    
+    protected function assertIsInt($value, $message = '') {
+        if (!is_int($value)) {
+            $type = gettype($value);
+            throw new Exception("Assertion failed: Expected integer, got '$type'. $message");
+        }
+    }
+    
+    protected function assertNotEquals($expected, $actual, $message = '') {
+        if ($actual === $expected) {
+            throw new Exception("Assertion failed: Values should not be equal. Expected '$expected', got '$actual'. $message");
+        }
+    }
+    
+    protected function assertMatchesRegularExpression($pattern, $string, $message = '') {
+        if (!preg_match($pattern, $string)) {
+            throw new Exception("Assertion failed: String does not match pattern '$pattern'. $message");
+        }
+    }
+    
+    protected function assertIsArray($value, $message = '') {
+        if (!is_array($value)) {
+            $type = gettype($value);
+            throw new Exception("Assertion failed: Expected array, got '$type'. $message");
+        }
+    }
 }
