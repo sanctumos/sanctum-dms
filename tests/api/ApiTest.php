@@ -95,7 +95,7 @@ class ApiTest extends BaseTest {
         // Test CORS headers in development mode
         if (DEBUG_MODE) {
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost/api/v1/status');
+            curl_setopt($ch, CURLOPT_URL, 'http://localhost:8080/api/v1/status');
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HEADER, true);
             curl_setopt($ch, CURLOPT_NOBODY, true);

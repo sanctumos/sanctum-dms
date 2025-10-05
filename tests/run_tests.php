@@ -12,6 +12,7 @@ class TestRunner {
     private $totalTests = 0;
     private $passedTests = 0;
     private $failedTests = 0;
+    private $apiServerProcess = null;
     
     public function __construct() {
         $this->startTime = microtime(true);
@@ -49,11 +50,16 @@ class TestRunner {
      */
     private function runApiTests() {
         echo "Running API Tests...\n";
+        $this->startApiServer();
         
         $testFiles = glob(__DIR__ . '/api/*Test.php');
         
-        foreach ($testFiles as $testFile) {
-            $this->runTestFile($testFile, 'API');
+        try {
+            foreach ($testFiles as $testFile) {
+                $this->runTestFile($testFile, 'API');
+            }
+        } finally {
+            $this->stopApiServer();
         }
     }
     
@@ -75,11 +81,41 @@ class TestRunner {
      */
     private function runE2ETests() {
         echo "Running E2E Tests...\n";
-        
+        $this->startApiServer();
         $testFiles = glob(__DIR__ . '/e2e/*Test.php');
         
-        foreach ($testFiles as $testFile) {
-            $this->runTestFile($testFile, 'E2E');
+        try {
+            foreach ($testFiles as $testFile) {
+                $this->runTestFile($testFile, 'E2E');
+            }
+        } finally {
+            $this->stopApiServer();
+        }
+    }
+
+    private function startApiServer() {
+        if ($this->apiServerProcess) {
+            return;
+        }
+        $projectRoot = dirname(__DIR__);
+        $docRoot = $projectRoot . '/public';
+        $router = $docRoot . '/router.php';
+        $cmd = PHP_BINARY . ' -S localhost:8080 ' . escapeshellarg($router);
+        $descriptorspec = [
+            0 => ['pipe', 'r'],
+            1 => ['file', __DIR__ . '/server_stdout.log', 'w'],
+            2 => ['file', __DIR__ . '/server_stderr.log', 'w']
+        ];
+        $this->apiServerProcess = proc_open($cmd, $descriptorspec, $pipes, $projectRoot);
+        // Give server a moment to start
+        usleep(300000);
+    }
+
+    private function stopApiServer() {
+        if ($this->apiServerProcess && is_resource($this->apiServerProcess)) {
+            proc_terminate($this->apiServerProcess);
+            proc_close($this->apiServerProcess);
+            $this->apiServerProcess = null;
         }
     }
     

@@ -111,7 +111,7 @@ class TestUtils {
      * Make API request
      */
     public static function makeApiRequest($method, $endpoint, $data = null, $headers = []) {
-        $url = 'http://localhost' . $endpoint;
+        $url = 'http://localhost:8080' . $endpoint;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -127,13 +127,21 @@ class TestUtils {
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         }
         
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
+        $body = json_decode($response ?? '', true);
+        if (!is_array($body)) {
+            $body = [];
+        }
+        
         return [
-            'code' => $httpCode,
-            'body' => json_decode($response, true)
+            'code' => $httpCode ?: 0,
+            'body' => $body
         ];
     }
 }

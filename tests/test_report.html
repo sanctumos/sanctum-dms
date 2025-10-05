@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DMS Test Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; }
+        .passed { color: green; }
+        .failed { color: red; }
+        .summary { margin: 20px 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Sanctum DMS Test Report</h1>
+        <p>Generated: 2025-10-05 00:12:17</p>
+    </div>
+    
+    <div class="summary">
+        <h2>Summary</h2>
+        <p>Total Tests: 14</p>
+        <p class="passed">Passed: 7</p>
+        <p class="failed">Failed: 7</p>
+        <p>Duration: 0.65s</p>
+        <p>Success Rate: 50%</p>
+    </div>
+    
+    <h2>Test Results</h2>
+    <table>
+        <tr>
+            <th>Test Name</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Message</th>
+        </tr><tr>
+                <td>DatabaseTest::testDatabaseInitialization</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>DatabaseTest::testSchemaCreation</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>DatabaseTest::testSchemaVersionTracking</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>DatabaseTest::testForeignKeyConstraints</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>DatabaseTest::testTransactionSupport</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>DatabaseTest::testPreparedStatements</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>DatabaseTest::testDatabaseStats</td>
+                <td>Unit</td>
+                <td class="passed">PASSED</td>
+                <td></td>
+            </tr><tr>
+                <td>ApiTest::testStatusEndpoint</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: Status response should be successful</td>
+            </tr><tr>
+                <td>ApiTest::testUnauthorizedEndpoints</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: Endpoint /api/v1/dealers should require auth or be not implemented</td>
+            </tr><tr>
+                <td>ApiTest::testApiResponseFormat</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: Array does not have key &#039;success&#039;. Response should have success field</td>
+            </tr><tr>
+                <td>ApiTest::testNotFoundEndpoint</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: Expected &#039;404&#039;, got &#039;200&#039;. Non-existent endpoint should return 404</td>
+            </tr><tr>
+                <td>ApiTest::testMethodNotAllowed</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: Expected &#039;405&#039;, got &#039;200&#039;. Unsupported method should return 405</td>
+            </tr><tr>
+                <td>ApiTest::testApiVersioning</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: Expected &#039;400&#039;, got &#039;404&#039;. Unsupported API version should return 400</td>
+            </tr><tr>
+                <td>ApiTest::testCorsHeaders</td>
+                <td>API</td>
+                <td class="failed">FAILED</td>
+                <td>Assertion failed: CORS headers should be present</td>
+            </tr></table>
+</body>
+</html>
